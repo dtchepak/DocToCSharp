@@ -1,4 +1,13 @@
-﻿[<EntryPoint>]
+﻿open DocToCSharp.Conversion
+open FSharpx
+
+[<EntryPoint>]
 let main argv = 
-    printfn "%A" argv
-    0 // return an integer exit code
+    match List.ofArray argv with
+    | srcPath::targetPath::[] -> 
+        match validatePath srcPath with
+        | Some src  -> convert src (ensurePath targetPath); 0
+        | _         -> printf "DocToCSharp.exe: Source directory '%s' does not exist." srcPath; -2
+    | _ -> 
+        printf "Usage: DocToCSharp.exe <srcDirectory> <targetDirectory>"
+        -1
