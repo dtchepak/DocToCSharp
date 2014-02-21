@@ -1,4 +1,4 @@
-﻿open DocToCSharp.Conversion
+﻿open DocToCSharp
 open FSharpx
 
 [<EntryPoint>]
