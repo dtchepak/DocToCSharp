@@ -7,6 +7,11 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "DocToCSharp", "src\DocToCSh
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "DocToCSharp.Tests", "tests\DocToCSharp.Tests\DocToCSharp.Tests.fsproj", "{7106FA24-CE17-4734-8775-C22394A15F02}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{996B76EC-3664-409B-8939-622D679E670E}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\packages.config = .nuget\packages.config
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
