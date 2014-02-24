@@ -2,6 +2,7 @@
 module DocToCSharp.Conversion
 
 open System
+open System.IO
 open FSharp.RegexProvider
 open FSharpx
 open FSharpx.Strings
@@ -18,11 +19,9 @@ type CodeBlock =
     | Snippet of string
     with override x.ToString() = sprintf "%A" x
 
-let trimStr (s : string) = s.Trim()
-
 type LiquidTag = LiquidTag of name : string * contents : string
     with override x.ToString() = sprintf "%A" x
-let makeTag name contents = LiquidTag (name, trimStr contents)
+let makeTag name (contents:string) = LiquidTag (name, contents.Trim())
 
 let toCodeBlock (LiquidTag (name, c)) =
     let isTypeDecl s = TypeDeclRegex().IsMatch(s, 0)
@@ -39,13 +38,42 @@ let toCodeBlocks s : CodeBlock seq =
     tags s
     |> Seq.choose toCodeBlock
 
-let convert src target =
+let toFixture = sprintf """
+using System;
+using NUnit.Framework;
+using System.Linq;
+using System.Collections.Generic;
+using System.ComponentModel;
+
+namespace %s {
+    public class Tests_%d {
+        %s
+    }
+}
+"""
+
+let appendCodeBlock (code, testNum) (cb:CodeBlock) =
+    match cb with
+    | Declaration d -> (code + Environment.NewLine + d, testNum)
+    | Snippet s -> 
+        let test = sprintf "[Test] public void Test_%d() { %s }" testNum s
+        (code + Environment.NewLine + test, testNum + 1)
+
+let strToFixture namespace' fixtureNum s : string =
+    s
+    |> toCodeBlocks
+    |> Seq.fold appendCodeBlock ("", 0)
+    |> fst
+    |> toFixture namespace' fixtureNum
+    
+let convert namespace' src target =
     let trace format value = printfn format value; value
     filesInDirectoryTree src
         |> Seq.where (extensionIs ["markdown"; "html"])
-        |> Seq.map (toCodeBlocks << readFileAsString << trace "   converting %s")
-        |> Seq.toArray
-        |> trace "   %A"
-        |> ignore
-    ()
-
+        |> Seq.iteri (fun num file ->
+            let outputFile = combinePaths (getDir target) (Path.GetFileNameWithoutExtension(file)+".cs")
+            printfn "   converting %s to %s" file outputFile
+            let input = readFileAsString file
+            let output = strToFixture namespace' num input
+            writeStringToFile false outputFile output
+        )
