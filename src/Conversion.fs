@@ -10,7 +10,7 @@ open FSharpx.IO
 open DocToCSharp
 
 type LiquidTagRegex = Regex< @"\{%\s*(?<tag>\w+).*\%}(?<contents>(?s:.*?))\{%\s*end\1\s*%\}" >
-type TypeDeclRegex = Regex< @"(public |private |protected )?(class |interface )\w+\s*\{" >
+type TypeOrTestDeclRegex = Regex< @"(\[Test\]|(public |private |protected )?(class |interface )\w+\s*\{)" >
 
 type CodeBlock =
     /// Code block that declares a member.
@@ -24,9 +24,9 @@ type LiquidTag = LiquidTag of name : string * contents : string
 let makeTag name (contents:string) = LiquidTag (name, contents.Trim())
 
 let toCodeBlock (LiquidTag (name, c)) =
-    let isTypeDecl s = TypeDeclRegex().IsMatch(s, 0)
+    let isTypeOrTestDecl s = TypeOrTestDeclRegex().IsMatch(s, 0)
     match name with
-    | "examplecode"  -> if isTypeDecl c then Some (Declaration c) else Some (Snippet c)
+    | "examplecode"  -> if isTypeOrTestDecl c then Some (Declaration c) else Some (Snippet c)
     | "requiredcode" -> Some (Declaration c)
     | _              -> None
 
@@ -52,11 +52,15 @@ namespace %s {
 }
 """
 
+let toTest = sprintf """[Test] public void Test_%d() {
+%s
+}"""
+
 let appendCodeBlock (code, testNum) (cb:CodeBlock) =
     match cb with
     | Declaration d -> (code + Environment.NewLine + d, testNum)
     | Snippet s -> 
-        let test = sprintf "[Test] public void Test_%d() { %s }" testNum s
+        let test = toTest testNum s
         (code + Environment.NewLine + test, testNum + 1)
 
 let strToFixture namespace' fixtureNum s : string =
