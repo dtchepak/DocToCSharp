@@ -69,15 +69,40 @@ let strToFixture namespace' fixtureNum s : string =
     |> Seq.fold appendCodeBlock ("", 0)
     |> fst
     |> toFixture namespace' fixtureNum
+
+let csProj =
+    sprintf """<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" Condition="'$(Configuration)|$(Platform)' != 'AllBuild|AnyCPU' "/>
+  <ItemGroup>
+    <Reference Include="NSubstitute.dll" />
+    <Reference Include="nunit.framework.dll" />
+    <CSFile Include="*.cs" />
+  </ItemGroup>
+  <Target Name="Build">
+    <Csc 
+        Sources="@(CSFile)"
+        References="@(Reference)"
+        OutputAssembly="%s"
+        TargetType="library"
+    />  
+  </Target>
+</Project>"""
     
 let convert namespace' src target =
-    let trace format value = printfn format value; value
+    let fileInTargetDir = combinePaths (getDir target)
+    let csProjFile = fileInTargetDir (namespace'+".csproj")
+    printfn "Converting docs in %A to %s." src csProjFile
     filesInDirectoryTree src
         |> Seq.where (extensionIs ["markdown"; "html"])
         |> Seq.iteri (fun num file ->
-            let outputFile = combinePaths (getDir target) (Path.GetFileNameWithoutExtension(file)+".cs")
+            let outputFile = fileInTargetDir (Path.GetFileNameWithoutExtension(file)+".cs")
             printfn "   converting %s to %s" file outputFile
             let input = readFileAsString file
             let output = strToFixture namespace' num input
             writeStringToFile false outputFile output
         )
+    writeStringToFile false csProjFile (csProj namespace')
+    printfn "================================================"
+    printfn "Done. Compile with: msbuild.exe %s /p:TargetFrameworkVersion=v3.5" csProjFile
+    printfn "NSubstitute.dll and nunit.framework.dll will need to be in %A for the project to compile." target
+

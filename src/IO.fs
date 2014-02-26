@@ -13,6 +13,7 @@ let extensionIs extensions file =
     |> any
 
 type ValidDirectory = private Valid of string
+    with override x.ToString() = match x with (Valid dir) -> dir
 
 let validatePath path : ValidDirectory option = 
     if Directory.Exists path then Valid path |> Some else None
