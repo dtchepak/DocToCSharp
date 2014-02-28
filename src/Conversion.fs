@@ -82,7 +82,7 @@ let csProj =
     <Csc 
         Sources="@(CSFile)"
         References="@(Reference)"
-        OutputAssembly="%s"
+        OutputAssembly="%s.dll"
         TargetType="library"
     />  
   </Target>
